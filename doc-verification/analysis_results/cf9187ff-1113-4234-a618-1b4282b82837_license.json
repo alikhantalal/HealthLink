@@ -1,0 +1,12 @@
+{
+  "status": "suspicious",
+  "confidence": 0.3,
+  "method": "ai_ocr",
+  "document_type": "license",
+  "keyword_matches": [],
+  "match_percentage": 0,
+  "extracted_text": "",
+  "doctor_name": "Talal Ali Khan",
+  "document_path": "uploads\\7a1b2a3d-ead2-46ae-be91-de88f5860bcf_image.jpg",
+  "result_id": "cf9187ff-1113-4234-a618-1b4282b82837"
+}

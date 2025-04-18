@@ -1,0 +1,36 @@
+.allsections {
+    grid-template-areas: "logo menuu menuu menuu";
+    transition: top 0.3s;
+  }
+  .logo {
+    grid-area: logo;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    justify-items: center;
+    align-items: center;
+    gap: 1rem;
+  }
+  .menuu {
+    grid-area: menuu;
+    display: grid;
+    justify-items: end;
+    align-items: center;
+  }
+  
+  @media screen and (max-width: 1024px) {
+    .allsections {
+      grid-template-areas: "logo menuu menuu menuu ";
+    }
+    .logo {
+      grid-area: logo;
+    }
+    .menuu {
+      grid-area: menuu;
+    }
+  }
+  
+  .icons:hover {
+    background: #1d4ed8;
+    color: white;
+    border-radius: 0.25rem;
+  }
