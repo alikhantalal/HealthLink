@@ -1,3 +1,5 @@
+// Now let's fix the DoctorProfile.js component to properly pass doctor data to the BookAppointmentModal
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -21,7 +23,7 @@ import DoctorExperienceEducation from '../components/DoctorExperienceEducation';
 import DoctorServices from '../components/DoctorServices';
 import DoctorReviews from '../components/DoctorReviews';
 import BookAppointmentModal from '../components/BookAppointmentModal';
-import ChatWithDoctorModal from '../components/ChatWithDoctorModal';
+
 // Import API service
 import { doctorsApi } from '../services/apiService';
 
@@ -39,7 +41,6 @@ const DoctorProfile = () => {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
   const [openAppointmentModal, setOpenAppointmentModal] = useState(false);
-  const [openChatModal, setOpenChatModal] = useState(false);
 
   useEffect(() => {
     const fetchDoctor = async () => {
@@ -62,19 +63,15 @@ const DoctorProfile = () => {
         if (response && response.success && response.data) {
           doctorData = response.data;
         } else if (response && response.data) {
-          // Handle direct data response without success wrapper
           doctorData = response.data;
         } else if (response && !response.success && response.message) {
-          // Handle error message in response
           throw new Error(response.message);
         } else if (response) {
-          // Direct response object might be the doctor data
           doctorData = response;
         } else {
           throw new Error('Failed to fetch doctor data - empty response');
         }
         
-        // Process doctor data to ensure all fields are properly formatted
         setDoctor(processDoctor(doctorData));
       } catch (error) {
         console.error('Error fetching doctor:', error);
@@ -87,22 +84,12 @@ const DoctorProfile = () => {
     fetchDoctor();
   }, [id]);
 
-  // Handle tab change
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
   };
 
-  // Get doctor name or fallback
-  const getDoctorName = () => {
-    if (!doctor) return 'Doctor';
-    return doctor.name || 'Doctor';
-  };
-  
-  // Get doctor specialization
-  const getDoctorSpecialization = () => {
-    if (!doctor) return 'Specialist';
-    return doctor.specialization || (doctor.qualification && doctor.qualification[0]) || 'Specialist';
-  };
+  // FIXED: Removed redundant getDoctorName and getDoctorSpecialization functions
+  // since we're passing the entire doctor object to the BookAppointmentModal
 
   if (loading) {
     return (
@@ -126,9 +113,7 @@ const DoctorProfile = () => {
             mb: 4, 
             borderRadius: 2, 
             boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-            '& .MuiAlert-icon': { 
-              fontSize: 28 
-            }
+            '& .MuiAlert-icon': { fontSize: 28 }
           }}
         >
           <Typography variant="subtitle1" fontWeight={500}>{error}</Typography>
@@ -162,9 +147,7 @@ const DoctorProfile = () => {
             mb: 4, 
             borderRadius: 2,
             boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-            '& .MuiAlert-icon': { 
-              fontSize: 28 
-            }
+            '& .MuiAlert-icon': { fontSize: 28 }
           }}
         >
           <Typography variant="subtitle1" fontWeight={500}>Doctor profile not found</Typography>
@@ -191,7 +174,6 @@ const DoctorProfile = () => {
 
   return (
     <Container maxWidth="lg" sx={{ py: { xs: 2, md: 4 }, px: { xs: 2, md: 3 } }}>
-      {/* Page Header - Doctor Name and Actions for Mobile */}
       {isMobile && (
         <Box 
           sx={{ 
@@ -203,26 +185,23 @@ const DoctorProfile = () => {
           }}
         >
           <Typography variant="h5" fontWeight="bold" gutterBottom>
-            {getDoctorName()}
+            {doctor.name}
           </Typography>
           <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-            {getDoctorSpecialization()}
+            {doctor.specialization}
           </Typography>
         </Box>
       )}
 
       <Grid container spacing={3}>
-        {/* Left Column - Doctor Info Card */}
         <Grid item xs={12} md={4}>
           <DoctorInfoCard 
             doctor={doctor}
             openAppointmentModal={() => setOpenAppointmentModal(true)}
-            openChatModal={() => setOpenChatModal(true)}
             isMobile={isMobile}
           />
         </Grid>
         
-        {/* Right Column - Tabs & Details */}
         <Grid item xs={12} md={8}>
           <Box
             sx={{
@@ -268,26 +247,18 @@ const DoctorProfile = () => {
             </Box>
             
             <Box sx={{ p: { xs: 2, md: 4 } }}>
-              {/* Overview Tab */}
               {activeTab === 0 && (
                 <DoctorOverview 
                   doctor={doctor} 
                   openAppointmentModal={() => setOpenAppointmentModal(true)}
-                  openChatModal={() => setOpenChatModal(true)}
                 />
               )}
-              
-              {/* Experience & Education Tab */}
               {activeTab === 1 && (
                 <DoctorExperienceEducation doctor={doctor} />
               )}
-              
-              {/* Services Tab */}
               {activeTab === 2 && (
                 <DoctorServices doctor={doctor} />
               )}
-              
-              {/* Reviews Tab */}
               {activeTab === 3 && (
                 <DoctorReviews doctor={doctor} />
               )}
@@ -296,19 +267,11 @@ const DoctorProfile = () => {
         </Grid>
       </Grid>
       
-      {/* Appointment Booking Modal */}
+      {/* FIXED: Now correctly passing the full doctor object to the BookAppointmentModal */}
       <BookAppointmentModal 
         open={openAppointmentModal} 
         handleClose={() => setOpenAppointmentModal(false)}
-        doctorName={getDoctorName()}
-        specialty={getDoctorSpecialization()}
-      />
-      
-      {/* Chat with Doctor Modal */}
-      <ChatWithDoctorModal
-        open={openChatModal}
-        handleClose={() => setOpenChatModal(false)}
-        doctor={doctor}
+        doctorData={doctor}
       />
     </Container>
   );

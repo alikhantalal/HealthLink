@@ -27,6 +27,7 @@ import {
   CheckCircle as CheckCircleIcon,
   CloudUpload as UploadIcon
 } from '@mui/icons-material';
+import axios from 'axios';
 
 const DoctorRegistration = () => {
   const [activeStep, setActiveStep] = useState(0);
@@ -76,6 +77,8 @@ const DoctorRegistration = () => {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentQualification, setCurrentQualification] = useState('');
+  const [submitError, setSubmitError] = useState('');
+  const [submitSuccess, setSubmitSuccess] = useState('');
   
   // List of specializations for dropdown
   const specializations = [
@@ -203,7 +206,7 @@ const DoctorRegistration = () => {
       hospitalAffiliations: updatedAffiliations
     });
   };
-
+  
   // Validate form fields based on current step
   const validateStep = (step) => {
     const newErrors = {};
@@ -266,6 +269,23 @@ const DoctorRegistration = () => {
       if (!formData.pmdcCertificate) newErrors.pmdcCertificate = 'PMDC certificate is required';
       if (!formData.medicalDegree) newErrors.medicalDegree = 'Medical degree is required';
       if (!formData.profilePhoto) newErrors.profilePhoto = 'Profile photo is required';
+    } else if (step === 4) {
+      // Account Information validation
+      if (!formData.username.trim()) newErrors.username = 'Username is required';
+      
+      if (!formData.password.trim()) {
+        newErrors.password = 'Password is required';
+      } else if (formData.password.length < 6) {
+        newErrors.password = 'Password must be at least 6 characters';
+      }
+      
+      if (formData.password !== formData.confirmPassword) {
+        newErrors.confirmPassword = 'Passwords do not match';
+      }
+      
+      if (!formData.acceptTerms) {
+        newErrors.acceptTerms = 'You must accept the terms and conditions';
+      }
     }
     
     setErrors(newErrors);
@@ -285,29 +305,78 @@ const DoctorRegistration = () => {
     setActiveStep((prevStep) => prevStep - 1);
   };
 
-  // Handle form submission
+  // Handle form submission - updated with proper logging and PMDC handling
   const handleSubmit = async (e) => {
     e.preventDefault();
     const isValid = validateStep(activeStep);
     
     if (isValid) {
       setIsSubmitting(true);
+      setSubmitError('');
+      setSubmitSuccess('');
       
       try {
-        // In a real app, you would send the data to your backend
-        // For this example, we'll simulate an API call with a timeout
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Create form data for submission
+        const formDataToSubmit = new FormData();
         
-        console.log('Form submitted successfully:', formData);
+        // Personal Information
+        formDataToSubmit.append('name', `${formData.firstName} ${formData.lastName}`);
+        formDataToSubmit.append('email', formData.email);
+        formDataToSubmit.append('phone', formData.phone);
+        formDataToSubmit.append('gender', formData.gender);
         
-        // For demo purposes, we'll just complete the process
+        // Make sure PMDC field is included - critical fix
+        console.log('PMDC number being submitted:', formData.pmdc); // Debug log
+        formDataToSubmit.append('pmdc', formData.pmdc);
+        
+        formDataToSubmit.append('cnic', formData.cnic);
+        
+        // Professional Details
+        formDataToSubmit.append('specialization', formData.specialization);
+        formDataToSubmit.append('qualifications', JSON.stringify(formData.qualifications));
+        formDataToSubmit.append('experience', formData.experience);
+        formDataToSubmit.append('bio', formData.bio);
+        
+        // Practice Details
+        formDataToSubmit.append('fee', formData.consultationFee);
+        formDataToSubmit.append('location', formData.location);
+        formDataToSubmit.append('availability', JSON.stringify(formData.availability));
+        
+        // Account Information
+        formDataToSubmit.append('username', formData.username);
+        formDataToSubmit.append('password', formData.password);
+        
+        // Files
+        formDataToSubmit.append('license', formData.pmdcCertificate);
+        formDataToSubmit.append('degree', formData.medicalDegree);
+        formDataToSubmit.append('profile_photo', formData.profilePhoto);
+        
+        // Log FormData contents for debugging
+        console.log('Form data being submitted:');
+        for (let pair of formDataToSubmit.entries()) {
+          console.log(pair[0] + ': ' + (pair[0] === 'password' ? '******' : pair[1]));
+        }
+        
+        // Send registration request
+        const response = await axios.post('/api/doctor-registration/register', formDataToSubmit, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+        
+        console.log('Registration successful:', response.data);
+        
+        // Show success message and move to success step
+        setSubmitSuccess('Registration successful! Your application is pending verification.');
         setActiveStep(5);
       } catch (error) {
         console.error('Error submitting form:', error);
-        setErrors({
-          ...errors,
-          submit: 'Failed to submit the form. Please try again.'
-        });
+        
+        if (error.response && error.response.data) {
+          setSubmitError(error.response.data.error || 'Failed to submit the form. Please try again.');
+        } else {
+          setSubmitError('Failed to submit the form. Please try again.');
+        }
       } finally {
         setIsSubmitting(false);
       }
@@ -319,7 +388,8 @@ const DoctorRegistration = () => {
     { label: 'Personal Information', description: 'Basic information' },
     { label: 'Professional Details', description: 'Your qualifications' },
     { label: 'Practice Details', description: 'Practice information' },
-    { label: 'Document Verification', description: 'Upload documents' }
+    { label: 'Document Verification', description: 'Upload documents' },
+    { label: 'Account Setup', description: 'Create your account' }
   ];
 
   const renderStepContent = () => {
@@ -404,6 +474,10 @@ const DoctorRegistration = () => {
                   error={!!errors.pmdc}
                   helperText={errors.pmdc || "Your Pakistan Medical & Dental Council registration number"}
                   required
+                  inputProps={{ 
+                    maxLength: 50,
+                    "data-testid": "pmdc-input" // For easier testing/debugging
+                  }}
                 />
               </Grid>
               <Grid item xs={12}>
@@ -525,7 +599,7 @@ const DoctorRegistration = () => {
             </Grid>
           </Box>
         );
-      case 2:
+        case 2:
         return (
           <Box>
             <Typography variant="h6" sx={{ mb: 3 }}>Practice Details</Typography>
@@ -726,6 +800,79 @@ const DoctorRegistration = () => {
             </Grid>
           </Box>
         );
+        case 4:
+        return (
+          <Box>
+            <Typography variant="h6" sx={{ mb: 3 }}>Account Setup</Typography>
+            <Alert severity="info" sx={{ mb: 3 }}>
+              Create your account credentials. You'll use these to log in after your verification is complete.
+            </Alert>
+            
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Username"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleChange}
+                  error={!!errors.username}
+                  helperText={errors.username}
+                  required
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Password"
+                  name="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  error={!!errors.password}
+                  helperText={errors.password}
+                  required
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Confirm Password"
+                  name="confirmPassword"
+                  type="password"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  error={!!errors.confirmPassword}
+                  helperText={errors.confirmPassword}
+                  required
+                />
+              </Grid>
+              
+              <Grid item xs={12}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={formData.acceptTerms}
+                      onChange={(e) => 
+                        setFormData({
+                          ...formData,
+                          acceptTerms: e.target.checked
+                        })
+                      }
+                      color="primary"
+                    />
+                  }
+                  label="I accept the terms and conditions"
+                />
+                {errors.acceptTerms && (
+                  <FormHelperText error>{errors.acceptTerms}</FormHelperText>
+                )}
+              </Grid>
+            </Grid>
+          </Box>
+        );
       case 5:
         return (
           <Box sx={{ textAlign: 'center', py: 4 }}>
@@ -774,14 +921,26 @@ const DoctorRegistration = () => {
       <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
         <Box sx={{ mb: 4, textAlign: 'center' }}>
           <Typography variant="h4" component="h1" gutterBottom fontWeight="bold">
-            Join HealthLink as a Doctor
+          Join HealthLink as a Doctor
           </Typography>
           <Typography variant="body1" color="text.secondary">
             Complete this verification form to join our network of healthcare professionals
           </Typography>
         </Box>
         
-        {activeStep <= 3 && (
+        {submitError && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {submitError}
+          </Alert>
+        )}
+        
+        {submitSuccess && (
+          <Alert severity="success" sx={{ mb: 3 }}>
+            {submitSuccess}
+          </Alert>
+        )}
+        
+        {activeStep <= 4 && (
           <>
             <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>
               {steps.map((step) => (
@@ -826,7 +985,7 @@ const DoctorRegistration = () => {
           </>
         )}
         
-        {activeStep > 3 && renderStepContent()}
+        {activeStep > 4 && renderStepContent()}
       </Paper>
     </Container>
   );

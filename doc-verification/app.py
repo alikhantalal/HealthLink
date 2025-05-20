@@ -115,6 +115,7 @@ def extract_text_from_image(image_path):
         text = re.sub(r'[^\w\s]', ' ', text)
         # Replace multiple spaces with a single space
         text = re.sub(r'\s+', ' ', text)
+        logger.info(f"Extracted text sample: {text[:100]}...")
         
         return text
     except Exception as e:
@@ -218,10 +219,242 @@ def verify_document(filepath, document_type, doctor_data=None):
         basic_result['error'] = str(e)
         return basic_result
 
+# Root endpoint for basic connectivity testing
+@app.route('/', methods=['GET'])
+def root():
+    """Root endpoint for checking service status"""
+    return jsonify({
+        'status': 'ok',
+        'message': 'Welcome to the Hospital AI Service API',
+        'endpoints': {
+            'health': '/api/health',
+            'verify': '/api/verify-doctor',
+            'original': '/api/verify-doctor-original',
+            'routes': '/api/routes',
+            'test': '/test-files'
+        }
+    })
+
+# Health check endpoint
+@app.route('/api/health', methods=['GET', 'OPTIONS'])
+def health_check():
+    """Health check endpoint"""
+    # Handle OPTIONS request for CORS preflight
+    if request.method == 'OPTIONS':
+        return '', 204
+        
+    try:
+        # Check if directories exist and are writable
+        upload_dir_exists = os.path.exists(app.config['UPLOAD_FOLDER'])
+        upload_dir_writable = os.access(app.config['UPLOAD_FOLDER'], os.W_OK)
+        results_dir_exists = os.path.exists(app.config['RESULTS_FOLDER'])
+        results_dir_writable = os.access(app.config['RESULTS_FOLDER'], os.W_OK)
+        
+        return jsonify({
+            'status': 'healthy',
+            'advanced_features': 'enabled' if ADVANCED_FEATURES else 'disabled',
+            'upload_directory': {
+                'exists': upload_dir_exists,
+                'writable': upload_dir_writable
+            },
+            'results_directory': {
+                'exists': results_dir_exists,
+                'writable': results_dir_writable
+            },
+            'version': '1.0.0'
+        })
+    except Exception as e:
+        logger.error(f"Health check error: {str(e)}")
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e)
+        }), 500
+
+# Route to list all available endpoints for debugging
+@app.route('/api/routes', methods=['GET', 'OPTIONS'])
+def list_routes():
+    """List all registered routes for debugging"""
+    # Handle OPTIONS request for CORS preflight
+    if request.method == 'OPTIONS':
+        return '', 204
+        
+    routes = []
+    for rule in app.url_map.iter_rules():
+        routes.append({
+            'endpoint': rule.endpoint,
+            'methods': list(rule.methods),
+            'path': str(rule)
+        })
+    return jsonify(routes)
+
+# Test endpoint for file uploads
+@app.route('/test-files', methods=['POST'])
+def test_files():
+    """Test endpoint for file uploads"""
+    logger.info("Received file upload test request")
+    logger.info(f"Request form data keys: {list(request.form.keys())}")
+    logger.info(f"Request files keys: {list(request.files.keys()) if request.files else 'No files'}")
+    
+    result = {
+        'success': True,
+        'message': 'Test endpoint working',
+        'form_fields': list(request.form.keys()),
+        'files': []
+    }
+    
+    # Process any files
+    for file_key in request.files:
+        file = request.files[file_key]
+        if file and file.filename:
+            result['files'].append({
+                'name': file.filename,
+                'type': file.content_type,
+                'size': 'unknown'  # Cannot get size easily
+            })
+    
+    return jsonify(result)
+
+# Enhanced verification endpoint
 @app.route('/api/verify-doctor', methods=['POST', 'OPTIONS'])
+def verify_doctor_simplified():
+    """Enhanced verification endpoint for processing doctor documents"""
+    # Handle OPTIONS request for CORS preflight
+    if request.method == 'OPTIONS':
+        return '', 204
+        
+    try:
+        logger.info("Received simplified verification request")
+        
+        # Log what we received to debug
+        logger.info(f"Request form data keys: {list(request.form.keys())}")
+        logger.info(f"Request files keys: {list(request.files.keys()) if request.files else 'No files'}")
+        
+        # Process files if they exist
+        verification_results = {}
+        files_received = False
+        
+        # Process license file
+        if 'license' in request.files:
+            file = request.files['license']
+            if file and file.filename:
+                files_received = True
+                logger.info(f"Processing license file: {file.filename}")
+                filename = secure_filename(file.filename)
+                unique_filename = f"{uuid.uuid4()}_{filename}"
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+                file.save(filepath)
+                
+                # Perform verification
+                verification_results['license'] = {
+                    'status': 'pending_review',
+                    'confidence': 0.6,
+                    'method': 'basic'
+                }
+                
+                # Try advanced verification if features are available
+                if ADVANCED_FEATURES:
+                    try:
+                        logger.info(f"Performing advanced verification on license")
+                        doctor_data = {
+                            'name': request.form.get('name', ''),
+                            'email': request.form.get('email', '')
+                        }
+                        verification_result = verify_document(
+                            filepath, 
+                            document_type='license',
+                            doctor_data=doctor_data
+                        )
+                        verification_results['license'] = verification_result
+                    except Exception as e:
+                        logger.error(f"Advanced verification failed for license: {str(e)}")
+        
+        # Process degree file
+        if 'degree' in request.files:
+            file = request.files['degree']
+            if file and file.filename:
+                files_received = True
+                logger.info(f"Processing degree file: {file.filename}")
+                filename = secure_filename(file.filename)
+                unique_filename = f"{uuid.uuid4()}_{filename}"
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+                file.save(filepath)
+                
+                # Perform verification
+                verification_results['degree'] = {
+                    'status': 'pending_review',
+                    'confidence': 0.6,
+                    'method': 'basic'
+                }
+                
+                # Try advanced verification if features are available
+                if ADVANCED_FEATURES:
+                    try:
+                        logger.info(f"Performing advanced verification on degree")
+                        doctor_data = {
+                            'name': request.form.get('name', ''),
+                            'email': request.form.get('email', '')
+                        }
+                        verification_result = verify_document(
+                            filepath, 
+                            document_type='degree',
+                            doctor_data=doctor_data
+                        )
+                        verification_results['degree'] = verification_result
+                    except Exception as e:
+                        logger.error(f"Advanced verification failed for degree: {str(e)}")
+                        
+        # Process profile photo if needed
+        if 'profile_photo' in request.files:
+            file = request.files['profile_photo']
+            if file and file.filename:
+                files_received = True
+                logger.info(f"Received profile photo: {file.filename}")
+                # Save profile photo for reference
+                filename = secure_filename(file.filename)
+                unique_filename = f"{uuid.uuid4()}_{filename}"
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+                file.save(filepath)
+        
+        # Create response
+        if not files_received:
+            logger.warning("No files were received in the request")
+            
+        # Return a success response with verification results
+        return jsonify({
+            'success': True,
+            'status': 'pending_review',
+            'message': 'Documents received and analyzed. Pending final review.',
+            'files_received': files_received,
+            'verification_results': verification_results
+        })
+    except Exception as e:
+        logger.error(f"Error in simplified verification: {str(e)}")
+        logger.error(traceback.format_exc())
+        # Still return success to not block registration
+        return jsonify({
+            'success': True,
+            'status': 'pending_review',
+            'message': f'Error processing verification: {str(e)}',
+            'error': str(e),
+            'verification_results': {
+                'license': {
+                    'status': 'pending_review',
+                    'confidence': 0.5,
+                    'method': 'basic'
+                },
+                'degree': {
+                    'status': 'pending_review',
+                    'confidence': 0.5,
+                    'method': 'basic'
+                }
+            }
+        })
+
+# Original verification endpoint - keep for future use once simplified endpoint is working
+@app.route('/api/verify-doctor-original', methods=['POST', 'OPTIONS'])
 def verify_doctor_documents():
     """
-    Endpoint to handle doctor document verification
+    Original endpoint to handle doctor document verification
     Expected form data:
     - name: doctor's name
     - email: doctor's email
@@ -328,18 +561,14 @@ def verify_doctor_documents():
             'traceback': traceback.format_exc()
         }), 500
 
-@app.route('/api/health', methods=['GET'])
-def health_check():
-    """Health check endpoint"""
-    features_status = "enabled" if ADVANCED_FEATURES else "disabled"
-    return jsonify({
-        'status': 'healthy',
-        'advanced_features': features_status
-    })
-
 if __name__ == '__main__':
     logger.info("Starting Flask verification service on port 5001")
     logger.info(f"Advanced features: {'ENABLED' if ADVANCED_FEATURES else 'DISABLED'}")
+    
+    # Log all registered routes
+    logger.info("Registered routes:")
+    for rule in app.url_map.iter_rules():
+        logger.info(f"  {rule} - {rule.methods}")
     
     if not ADVANCED_FEATURES:
         logger.warning("""

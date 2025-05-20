@@ -65,9 +65,9 @@ export default function Navbar() {
     setAnchorEl(null);
   };
 
-  const handleLogin = (role) => {
+  const handleLogin = () => {
     handleMenuClose();
-    navigate("/login", { state: { role } });
+    navigate("/login", { state: { role: "doctor" } });
   };
 
   // Mobile drawer handlers
@@ -153,7 +153,7 @@ export default function Navbar() {
       <List sx={{ p: 1 }}>
         <ListItem
           button
-          onClick={() => handleLogin("doctor")}
+          onClick={() => handleLogin()}
           sx={{
             borderRadius: 2,
             mb: 0.5,
@@ -166,23 +166,6 @@ export default function Navbar() {
             <MedicationIcon />
           </ListItemIcon>
           <ListItemText primary="Doctor Login" />
-        </ListItem>
-        
-        <ListItem
-          button
-          onClick={() => handleLogin("patient")}
-          sx={{
-            borderRadius: 2,
-            mb: 0.5,
-            "&:hover": {
-              bgcolor: "rgba(25, 118, 210, 0.08)",
-            },
-          }}
-        >
-          <ListItemIcon>
-            <LoginIcon />
-          </ListItemIcon>
-          <ListItemText primary="Patient Login" />
         </ListItem>
         
         <ListItem
@@ -313,61 +296,17 @@ export default function Navbar() {
                   ))}
 
                   <Button
-                    onClick={handleMenuOpen}
+                    onClick={handleLogin}
                     sx={{
                       color: "text.primary",
                       fontWeight: 500,
                       ml: 2,
                       px: 2,
                     }}
-                    endIcon={<LoginIcon />}
+                    endIcon={<MedicationIcon />}
                   >
-                    Login
+                    Doctor Login
                   </Button>
-
-                  <Menu
-                    anchorEl={anchorEl}
-                    open={Boolean(anchorEl)}
-                    onClose={handleMenuClose}
-                    elevation={3}
-                    anchorOrigin={{
-                      vertical: "bottom",
-                      horizontal: "right",
-                    }}
-                    transformOrigin={{
-                      vertical: "top",
-                      horizontal: "right",
-                    }}
-                    sx={{
-                      "& .MuiPaper-root": {
-                        borderRadius: 2,
-                        minWidth: 180,
-                        boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
-                        mt: 1.5,
-                      },
-                    }}
-                  >
-                    <MenuItem
-                      onClick={() => handleLogin("doctor")}
-                      sx={{ py: 1.5 }}
-                    >
-                      <MedicationIcon
-                        fontSize="small"
-                        sx={{ mr: 1.5, color: "primary.main" }}
-                      />
-                      Login as Doctor
-                    </MenuItem>
-                    <MenuItem
-                      onClick={() => handleLogin("patient")}
-                      sx={{ py: 1.5 }}
-                    >
-                      <LoginIcon
-                        fontSize="small"
-                        sx={{ mr: 1.5, color: "primary.main" }}
-                      />
-                      Login as Patient
-                    </MenuItem>
-                  </Menu>
 
                   <Button
                     variant="contained"

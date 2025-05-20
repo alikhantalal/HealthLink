@@ -8,7 +8,7 @@ router.post('/chat', async (req, res) => {
     const { symptoms } = req.body;
     
     if (!symptoms) {
-      return res.status(400).json({ error: 'Symptoms are required' });
+      return res.status(400).json({ error: 'Please add correct symptoms' });
     }
     
     // Check if API key is available

@@ -3,7 +3,8 @@ const router = express.Router();
 const Doctor = require("../models/DoctorsData"); // ✅ Fixed import
 
 // 🏥 Route to fetch doctors by qualification or specialization
-router.get("/fetchdoctorsdata", async (req, res) => {
+// In fetchdoctorsdata.js
+router.get("/", async (req, res) => {
     try {
         const { qualification, specialization } = req.query;
         console.log("Requested Qualification:", qualification);
@@ -11,21 +12,25 @@ router.get("/fetchdoctorsdata", async (req, res) => {
 
         let query = {};
 
-        // ✅ If qualification is provided, search by qualification
-        if (qualification) {
+        // If specialization is provided, search across multiple fields
+        if (specialization) {
             query.$or = [
-                { qualification: { $regex: qualification, $options: "i" } }, // For single qualification field match
-                { qualifications: { $elemMatch: { $regex: qualification, $options: "i" } } } // For array field match
+                { specialization: { $regex: specialization, $options: "i" } },
+                { qualification: { $regex: specialization, $options: "i" } }
             ];
         }
 
-        // ✅ If specialization is provided, add it to the query
-        if (specialization) {
-            query.specialization = { $regex: specialization, $options: "i" };
+        // If qualification is provided separately
+        if (qualification) {
+            if (!query.$or) query.$or = [];
+            query.$or.push({ qualification: { $regex: qualification, $options: "i" } });
+            query.$or.push({ qualifications: { $elemMatch: { $regex: qualification, $options: "i" } } });
         }
 
-        // ✅ Fetch doctors based on query
+        console.log("Query:", JSON.stringify(query));
+        // Fetch doctors based on query
         const doctors = await Doctor.find(query);
+        console.log(`Found ${doctors.length} doctors matching the query`);
 
         if (!doctors.length) {
             return res.status(404).json({ success: false, message: "No doctors found" });
@@ -37,7 +42,6 @@ router.get("/fetchdoctorsdata", async (req, res) => {
         res.status(500).json({ success: false, error: "Internal Server Error" });
     }
 });
-
 // ➕ Route to add a doctor
 router.post("/adddoctor", async (req, res) => {
     try {

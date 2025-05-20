@@ -13,56 +13,58 @@ import {
 } from '@mui/material';
 import {
   MonitorHeart as HeartMonitorIcon,
-  Person as DoctorIcon,
-  Calculate as CalculatorIcon,
-  Psychology as BrainIcon,
-  LocalHospital as OxygenIcon,
-  ArrowForward as ArrowIcon
+  PersonSearch as DoctorSearchIcon,
+  CalendarMonth as CalendarIcon,
+  MedicalInformation as MedicalRecordsIcon,
+  LocalHospital as HospitalIcon,
+  ArrowForward as ArrowIcon,
+  Psychology as AIIcon,
+  CreditCard as PaymentIcon
 } from '@mui/icons-material';
 
-// Enhanced features data with icons and categories
+// Enhanced features data focused on connecting patients with specialists
 const features = [
   {
-    title: 'Real-Time Bed Availability',
-    description: 'Monitor hospital beds across the network with live updates on capacity and availability.',
-    icon: <HeartMonitorIcon sx={{ fontSize: 40 }} />,
-    category: 'Hospital',
+    title: 'Find the Right Specialist',
+    description: 'Quickly match your symptoms to the most appropriate medical specialists in your area.',
+    icon: <DoctorSearchIcon sx={{ fontSize: 40 }} />,
+    category: 'Discovery',
     color: '#1976d2'
   },
   {
-    title: 'Doctor Availability Tracker',
-    description: 'Check real-time status of doctors including their specialization and appointment slots.',
-    icon: <DoctorIcon sx={{ fontSize: 40 }} />,
-    category: 'Doctors',
-    color: '#00bfa5'
-  },
-  {
-    title: 'Symptom-Based Bill Estimator',
-    description: 'Get accurate medical bill estimates based on your symptoms and required treatments.',
-    icon: <CalculatorIcon sx={{ fontSize: 40 }} />,
-    category: 'Finance',
-    color: '#ff9800'
-  },
-  {
-    title: 'AI-Enhanced Diagnosis',
-    description: 'Our AI assistant helps diagnose conditions from symptoms, speeding up the care process.',
-    icon: <BrainIcon sx={{ fontSize: 40 }} />,
-    category: 'Technology',
+    title: 'Symptom-Based Matching',
+    description: 'Our AI assistant analyzes your symptoms to recommend the most relevant specialists for your condition.',
+    icon: <AIIcon sx={{ fontSize: 40 }} />,
+    category: 'AI',
     color: '#6200ea'
   },
   {
-    title: 'Oxygen Cylinder Tracking',
-    description: 'Track real-time availability and usage of oxygen cylinders across all partner hospitals.',
-    icon: <OxygenIcon sx={{ fontSize: 40 }} />,
-    category: 'Resources',
+    title: 'Instant Appointment Booking',
+    description: 'Book appointments with specialists directly through our platform with real-time availability.',
+    icon: <CalendarIcon sx={{ fontSize: 40 }} />,
+    category: 'Booking',
+    color: '#00bfa5'
+  },
+  {
+    title: 'Verified Specialist Profiles',
+    description: 'Browse detailed profiles with qualifications, experience, patient reviews, and services offered.',
+    icon: <MedicalRecordsIcon sx={{ fontSize: 40 }} />,
+    category: 'Trust',
+    color: '#4caf50'
+  },
+  {
+    title: 'Direct Doctor Communication',
+    description: 'Chat directly with specialists before and after appointments for seamless care coordination.',
+    icon: <HeartMonitorIcon sx={{ fontSize: 40 }} />,
+    category: 'Communication',
     color: '#f50057'
   },
   {
-    title: 'Medical Records Integration',
-    description: 'Access your complete medical history seamlessly across all healthcare providers.',
-    icon: <HeartMonitorIcon sx={{ fontSize: 40 }} />,
-    category: 'Patient Care',
-    color: '#4caf50'
+    title: 'Transparent Pricing',
+    description: 'View consultation fees upfront with no hidden charges to help you make informed decisions.',
+    icon: <PaymentIcon sx={{ fontSize: 40 }} />,
+    category: 'Transparency',
+    color: '#ff9800'
   },
 ];
 
@@ -122,7 +124,7 @@ export default function Features() {
               mb: 1
             }}
           >
-            POWERFUL FEATURES
+            HOW WE HELP
           </Typography>
           
           <Typography
@@ -134,9 +136,9 @@ export default function Features() {
               fontSize: { xs: '2rem', md: '2.5rem' }
             }}
           >
-            Healthcare Management{' '}
+            Bridging Patients with{' '}
             <Box component="span" sx={{ color: theme.palette.primary.main }}>
-              Reimagined
+              Specialists
             </Box>
           </Typography>
           
@@ -149,8 +151,8 @@ export default function Features() {
               mx: 'auto'
             }}
           >
-            Discover how our platform empowers patients, doctors, and healthcare facilities with
-            innovative technology solutions designed to enhance care delivery.
+            Connecting you with the right healthcare specialists based on your specific 
+            conditions and needs - making quality healthcare accessible to everyone.
           </Typography>
         </Box>
 
@@ -243,23 +245,8 @@ export default function Features() {
                     {feature.description}
                   </Typography>
                   
-                  {/* Learn More Link */}
-                  <Box sx={{ mt: 'auto' }}>
-                    <Button
-                      endIcon={<ArrowIcon fontSize="small" />}
-                      sx={{
-                        textTransform: 'none',
-                        fontWeight: 600,
-                        p: 0,
-                        '&:hover': {
-                          background: 'transparent',
-                          color: feature.color,
-                        },
-                      }}
-                    >
-                      Learn more
-                    </Button>
-                  </Box>
+                  {/* Additional spacing at the bottom */}
+                  <Box sx={{ mt: 'auto', height: 8 }} />
                 </CardContent>
               </Card>
             </Grid>
@@ -306,7 +293,7 @@ export default function Features() {
                 fontSize: { xs: '1.8rem', md: '2.2rem' }
               }}
             >
-              Ready to Transform Your Healthcare Experience?
+              Find Your Specialist Today
             </Typography>
             
             <Typography 
@@ -318,7 +305,8 @@ export default function Features() {
                 mx: 'auto'
               }}
             >
-              Join thousands of patients and healthcare providers who are already benefiting from our platform.
+              Whether you're dealing with a specific condition or seeking expert medical advice,
+              our platform connects you with the right specialists in just a few clicks.
             </Typography>
             
             <Box sx={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 2 }}>
@@ -338,7 +326,7 @@ export default function Features() {
                   },
                 }}
               >
-                Get Started
+                Find a Specialist
               </Button>
               
               <Button
@@ -355,7 +343,7 @@ export default function Features() {
                   },
                 }}
               >
-                Learn More
+                How It Works
               </Button>
             </Box>
           </Box>

@@ -355,50 +355,8 @@ const DoctorInfoCard = ({ doctor, openAppointmentModal, openChatModal, isMobile 
             maxWidth: 'calc(100% - 32px)',
           }}
         >
-          <Button
-            variant="contained"
-            fullWidth
-            onClick={openAppointmentModal}
-            sx={{ 
-              py: 2,
-              borderRadius: 3,
-              textTransform: 'none',
-              fontSize: '1rem',
-              fontWeight: 600,
-              boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
-              '&:hover': {
-                boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
-                transform: 'translateY(-2px)'
-              },
-              transition: 'all 0.3s ease'
-            }}
-            startIcon={<CalendarIcon />}
-          >
-            Book Appointment
-          </Button>
           
-          <Button
-            variant="outlined"
-            fullWidth
-            onClick={openChatModal}
-            sx={{ 
-              py: 2,
-              borderRadius: 3,
-              textTransform: 'none',
-              fontSize: '1rem',
-              fontWeight: 600,
-              borderWidth: 2,
-              '&:hover': {
-                borderWidth: 2,
-                transform: 'translateY(-2px)'
-              },
-              transition: 'all 0.3s ease'
-            }}
-            startIcon={<ChatIcon />}
-          >
-            Chat with Doctor
-          </Button>
-        </Stack>
+          </Stack>
       </Box>
     </Paper>
   );

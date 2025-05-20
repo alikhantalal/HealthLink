@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Container } from "@mui/material";
+import { Container, Box } from "@mui/material";
 import ChatBot from "../components/ChatBot"; 
 import FindSpecialistsComponent from "../components/FindSpecialistsComponent";
 
@@ -26,8 +26,17 @@ const PatientView = () => {
         mb: 8
       }}
     >
-      {/* AI Chatbot for symptom analysis */}
-      <ChatBot />
+      {/* ChatBot with fixed height container to prevent layout shifts */}
+      <Box 
+        sx={{ 
+          height: 'auto',
+          minHeight: 600, // Set a minimum height
+          position: 'relative',
+          mb: 4
+        }}
+      >
+        <ChatBot />
+      </Box>
       
       {/* Find Specialists Component */}
       <FindSpecialistsComponent />
