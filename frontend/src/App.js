@@ -1,10 +1,8 @@
-import React, { useState } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { PrimeReactProvider } from "primereact/api";
 import { ThemeProvider, CssBaseline, Snackbar, Alert } from "@mui/material";
 import Navbar from "./components/Navbar";
-import SlideShow from "./components/SlideShow";
-import Features from "./components/Features";
 import Login from "./components/Login";
 import About from "./components/About";
 import PatientView from "./pages/PatientView";
@@ -16,31 +14,46 @@ import DoctorProfile from "./pages/DoctorProfile";
 import ChatBot from './components/ChatBot';
 import HomePage from './pages/HomePage';
 import DoctorSignup from './components/DoctorSignup';
+import DoctorDashboard from './pages/DoctorDashboard';
+import AdminDashboard from './pages/AdminDashboard';
 import theme from "./theme";
 
+// Protected Route Component
+const ProtectedRoute = ({ element, allowedRoles = [] }) => {
+  const token = localStorage.getItem('token');
+  const userRole = localStorage.getItem('userRole');
+
+  if (!token) return <Navigate to="/login" replace />;
+  if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
+    return <Navigate to="/" replace />;
+  }
+  return element;
+};
+
 export default function App() {
-  // Alert state
   const [alert, setAlert] = useState({
     open: false,
     message: "",
-    severity: "info", // "success", "error", "warning", "info"
+    severity: "info",
   });
 
-  // Global alert handler
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const storedUserRole = localStorage.getItem('userRole');
+    setIsAuthenticated(!!token);
+    setUserRole(storedUserRole || null);
+  }, []);
+
   const showAlert = (message, severity = "info") => {
     console.log("Showing alert:", message, severity);
-    setAlert({
-      open: true,
-      message,
-      severity,
-    });
+    setAlert({ open: true, message, severity });
   };
 
-  // Close alert
   const handleCloseAlert = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
+    if (reason === "clickaway") return;
     setAlert((prev) => ({ ...prev, open: false }));
   };
 
@@ -49,32 +62,42 @@ export default function App() {
       <CssBaseline />
       <PrimeReactProvider>
         <Router>
-          {/* Global Navbar */}
-          <Navbar />
+          <Navbar isAuthenticated={isAuthenticated} userRole={userRole} />
 
           <main style={{ minHeight: "calc(100vh - 80px)" }}>
             <Routes>
-              {/* Authentication Routes */}
-              <Route path="/login" element={<Login showAlert={showAlert} />} />
-              <Route path="/join-as-doctor" element={<DoctorSignup showAlert={showAlert} />} />
-              <Route path="/about" element={<About />} />
-
-              {/* Patient View */}
+              {/* Public Routes */}
+              <Route path="/" element={<HomePage />} />
               <Route path="/patients" element={<PatientView />} />
-
-              {/* Specialists */}
               <Route path="/specialists" element={<SpecialistsPage />} />
               <Route path="/find-specialists" element={<FindSpecialists />} />
-              {/* Updated to use SpecialistDoctorsWithFilter */}
               <Route path="/specialists/:specialty" element={<SpecialistDoctorsWithFilter showAlert={showAlert} />} />
               <Route path="/doctor/:id" element={<DoctorProfile />} />
               <Route path="/book-appointment" element={<BookAppointmentPage />} />
-
-              {/* Chatbot Route */}
               <Route path="/chatbot" element={<ChatBot />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/login" element={<Login showAlert={showAlert} />} />
+              <Route path="/join-as-doctor" element={<DoctorSignup showAlert={showAlert} />} />
 
-              {/* Home Page */}
-              <Route path="/" element={<HomePage />} />
+              {/* Protected Routes */}
+              <Route 
+                path="/doctor-dashboard" 
+                element={
+                  <ProtectedRoute 
+                    element={<DoctorDashboard showAlert={showAlert} />}
+                    allowedRoles={['doctor']} 
+                  />
+                } 
+              />
+              <Route 
+                path="/admin-dashboard" 
+                element={
+                  <ProtectedRoute 
+                    element={<AdminDashboard showAlert={showAlert} />}
+                    allowedRoles={['admin']} 
+                  />
+                } 
+              />
             </Routes>
           </main>
 

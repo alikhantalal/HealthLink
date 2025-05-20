@@ -36,12 +36,18 @@ const HealthSearch = () => {
     { id: "medicine", label: "Medicine", icon: <MedicationIcon fontSize="small" /> }
   ];
 
-  const handleSearch = () => {
+  const handleSearch = (e) => {
+    if (e) e.preventDefault();
+    
+    // Only proceed if search term is not empty
+    if (!searchTerm.trim()) return;
+    
     // Navigate based on search term and selected service
     if (selectedService === "doctors" || selectedService === "all") {
-      navigate(`/specialists?search=${searchTerm}`);
+      navigate(`/specialists?search=${encodeURIComponent(searchTerm.trim())}`);
     } else {
-      navigate(`/${selectedService}?search=${searchTerm}`);
+      // For other service types, include service in the query
+      navigate(`/specialists?search=${encodeURIComponent(searchTerm.trim())}&service=${selectedService}`);
     }
   };
 
@@ -69,7 +75,7 @@ const HealthSearch = () => {
               fontSize: { xs: "1.75rem", sm: "2.25rem", md: "2.75rem" }
             }}
           >
-            Find and Book the{" "}
+            Connect with the{" "}
             <Box
               component="span"
               sx={{
@@ -79,9 +85,9 @@ const HealthSearch = () => {
                 WebkitTextFillColor: "transparent"
               }}
             >
-              Best Healthcare
+              Right Specialist
             </Box>{" "}
-            for You
+            for Your Needs
           </Typography>
 
           <Box
@@ -99,7 +105,7 @@ const HealthSearch = () => {
             }}
           >
             <HealthIcon sx={{ fontSize: 18, mr: 1, color: theme.palette.success.main }} />
-            50M+ patients served nationwide
+            Simplifying healthcare access in Pakistan
           </Box>
         </Box>
 
@@ -150,63 +156,65 @@ const HealthSearch = () => {
         </Grid>
 
         {/* Search Bar */}
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: { xs: "column", sm: "row" },
-            alignItems: "center",
-            gap: 2,
-            maxWidth: "800px",
-            mx: "auto"
-          }}
-        >
-          <TextField
-            fullWidth
-            placeholder={
-              selectedService === "all"
-                ? "Search for doctors, symptoms, services..."
-                : `Search for ${selectedService}...`
-            }
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            variant="outlined"
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon color="action" />
-                </InputAdornment>
-              ),
-              sx: {
-                borderRadius: "12px",
-                backgroundColor: "white",
-                boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
-                height: 56
-              }
-            }}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                handleSearch();
-              }
-            }}
-          />
-
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleSearch}
+        <form onSubmit={handleSearch}>
+          <Box
             sx={{
-              borderRadius: "12px",
-              py: 1.5,
-              px: { xs: 3, sm: 5 },
-              fontWeight: "bold",
-              boxShadow: "0 4px 12px rgba(25, 118, 210, 0.3)",
-              minWidth: { xs: "100%", sm: "auto" },
-              height: 56
+              display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
+              alignItems: "center",
+              gap: 2,
+              maxWidth: "800px",
+              mx: "auto"
             }}
           >
-            Search
-          </Button>
-        </Box>
+            <TextField
+              fullWidth
+              placeholder={
+                selectedService === "all"
+                  ? "Search for doctors, symptoms, services..."
+                  : `Search for ${selectedService}...`
+              }
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              variant="outlined"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon color="action" />
+                  </InputAdornment>
+                ),
+                sx: {
+                  borderRadius: "12px",
+                  backgroundColor: "white",
+                  boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+                  height: 56
+                }
+              }}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  handleSearch(e);
+                }
+              }}
+            />
+
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              sx={{
+                borderRadius: "12px",
+                py: 1.5,
+                px: { xs: 3, sm: 5 },
+                fontWeight: "bold",
+                boxShadow: "0 4px 12px rgba(25, 118, 210, 0.3)",
+                minWidth: { xs: "100%", sm: "auto" },
+                height: 56
+              }}
+            >
+              Search
+            </Button>
+          </Box>
+        </form>
 
         {/* Quick Links */}
         <Box mt={4} textAlign="center">
@@ -223,7 +231,7 @@ const HealthSearch = () => {
                   onClick={() => {
                     setSearchTerm(item);
                     setSelectedService("doctors");
-                    handleSearch();
+                    navigate(`/specialists?search=${encodeURIComponent(item)}`);
                   }}
                   sx={{
                     bgcolor: "background.paper",

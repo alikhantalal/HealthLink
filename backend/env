@@ -1,13 +1,6 @@
-# API Keys
-GROQ_API_KEY=your_groq_api_key_here
-
-# MongoDB Configuration
+GROQ_API_KEY=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
 MONGO_URI=mongodb://localhost:27017
 DB_NAME=healthlink
-
-# Server Configuration
 PORT=5000
 NODE_ENV=development
-
-# JWT Secret
 JWT_SECRET=your_jwt_secret_key

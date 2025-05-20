@@ -1,18 +1,19 @@
 import React from "react";
-import { Container, Typography, Box, Button } from "@mui/material";
+import { Container, Typography, Box } from "@mui/material";
 
 export default function About() {
   return (
-    <Container maxWidth="md" sx={{ marginTop: 4, marginBottom: 4 }}>
+    <Container maxWidth="md" sx={{ marginTop: 6, marginBottom: 6 }}>
       <Box
         sx={{
           padding: 4,
-          backgroundColor: "#f5f5f5",
-          borderRadius: 2,
-          boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+          backgroundColor: "#ffffff",
+          borderRadius: 3,
+          boxShadow: "0 6px 18px rgba(0,0,0,0.1)",
           textAlign: "center",
         }}
       >
+        {/* Heading */}
         <Typography
           variant="h3"
           gutterBottom
@@ -20,108 +21,93 @@ export default function About() {
             fontWeight: "bold",
             color: "#0056b3",
             textTransform: "uppercase",
+            marginBottom: 2,
           }}
         >
-          Enter Health Link: A Ray of Hope
+          Your Bridge to Better Healthcare
         </Typography>
+
+        {/* Introduction */}
         <Typography
           variant="body1"
           sx={{
-            marginTop: 2,
             color: "#4f4f4f",
             lineHeight: 1.8,
             textAlign: "justify",
           }}
         >
-          This is where Health Link steps in – not just as another healthcare
-          system, but as a comprehensive solution that understands the human
-          side of healthcare. By integrating AI-driven technology with
-          human-centered design, Health Link aims to:
+          Health Link is a smart and user-friendly healthcare platform designed
+          to seamlessly connect patients with the right medical professionals.
+          Whether you know what you're looking for or just need guidance, our
+          system has you covered.
         </Typography>
+
+        {/* Features List */}
         <Box
           sx={{
             textAlign: "left",
-            marginTop: 3,
-            marginBottom: 3,
+            marginTop: 4,
+            marginBottom: 4,
           }}
         >
-          <ul>
+          <Typography
+            variant="h5"
+            sx={{ fontWeight: "medium", marginBottom: 2, color: "#0056b3" }}
+          >
+            What Health Link Offers:
+          </Typography>
+          <ul style={{ paddingLeft: "1.5rem" }}>
             <li>
-              <Typography variant="body1" sx={{ color: "#4f4f4f" }}>
-                Make finding the right healthcare as easy as finding directions
-                on your phone
+              <Typography variant="body1" sx={{ color: "#4f4f4f", mb: 1 }}>
+                🔍 Instantly search and find verified medical specialists
+              </Typography>
+            </li>
+            <li>
+              <Typography variant="body1" sx={{ color: "#4f4f4f", mb: 1 }}>
+                🤖 Use our AI-powered chatbot to input symptoms and receive a
+                predicted diagnosis with specialist recommendations
+              </Typography>
+            </li>
+            <li>
+              <Typography variant="body1" sx={{ color: "#4f4f4f", mb: 1 }}>
+                🩺 Doctors can register and connect with patients across the country
               </Typography>
             </li>
             <li>
               <Typography variant="body1" sx={{ color: "#4f4f4f" }}>
-                Ensure medical records follow patients wherever they go
-              </Typography>
-            </li>
-            <li>
-              <Typography variant="body1" sx={{ color: "#4f4f4f" }}>
-                Transform resource management from guesswork to precision
-              </Typography>
-            </li>
-            <li>
-              <Typography variant="body1" sx={{ color: "#4f4f4f" }}>
-                Help hospitals prepare for disease outbreaks before they peak
+                🌐 A seamless experience that bridges the gap between patients and
+                care providers
               </Typography>
             </li>
           </ul>
         </Box>
+
+        {/* Closing */}
         <Typography
           variant="body1"
           sx={{
-            marginBottom: 2,
             color: "#4f4f4f",
             lineHeight: 1.8,
             textAlign: "justify",
-          }}
-        >
-          The goal isn't just to digitize healthcare – it's to humanize it. To
-          ensure that stories like Fatima's become tales of the past, not daily
-          realities of the present.
-        </Typography>
-        <Typography
-          variant="body1"
-          sx={{
             marginBottom: 3,
-            color: "#4f4f4f",
-            lineHeight: 1.8,
-            textAlign: "justify",
           }}
         >
-          This isn't just about implementing new technology; it's about
-          transforming how millions of Pakistanis experience healthcare. It's
-          about ensuring that when someone walks into a hospital, they find
-          care, not confusion; help, not hurdles; and solutions, not more
-          problems.
+          Our mission is to make healthcare simple, intelligent, and accessible.
+          Whether you're seeking care or offering it, Health Link is your trusted
+          companion in navigating the healthcare journey — smarter, faster, and
+          more human.
         </Typography>
+
         <Typography
           variant="h6"
           sx={{
             fontWeight: "bold",
             color: "#0056b3",
+            textDecoration: "underline",
           }}
         >
-          Health Link represents our commitment to changing these stories, one
-          patient at a time.
+          Join us in redefining how Pakistan experiences healthcare.
         </Typography>
-        <Button
-          variant="contained"
-          sx={{
-            marginTop: 4,
-            backgroundColor: "#0056b3",
-            color: "#ffffff",
-            padding: "10px 20px",
-            textTransform: "none",
-            "&:hover": {
-              backgroundColor: "#003f87",
-            },
-          }}
-        >
-          Learn More
-        </Button>
       </Box>
     </Container>
   );

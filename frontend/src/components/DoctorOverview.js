@@ -294,29 +294,6 @@ const DoctorOverview = ({ doctor, openAppointmentModal, openChatModal }) => {
           Book Appointment
         </Button>
         
-        <Button
-          variant="outlined"
-          color="primary"
-          startIcon={<ChatIcon />}
-          onClick={openChatModal}
-          size="large"
-          sx={{
-            px: 4,
-            py: 1.5,
-            borderRadius: 3,
-            textTransform: 'none',
-            fontWeight: 600,
-            borderWidth: 2,
-            '&:hover': {
-              boxShadow: '0 5px 15px rgba(0,0,0,0.1)',
-              transform: 'translateY(-2px)',
-              borderWidth: 2
-            },
-            transition: 'all 0.3s ease'
-          }}
-        >
-          Chat with Doctor
-        </Button>
       </Box>
     </Box>
   );

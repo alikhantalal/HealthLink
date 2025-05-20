@@ -1,1026 +1,565 @@
-import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { 
+import React, { useState, useEffect } from "react";
+import {
+  Container, 
+  Typography, 
+  Box, 
+  Grid, 
   Card, 
   CardContent, 
-  Typography, 
-  Grid, 
-  Button, 
-  Paper, 
-  Box, 
   Avatar, 
   Chip, 
+  Button, 
+  TextField, 
   CircularProgress,
-  Alert,
-  Container,
-  Rating,
-  useTheme,
-  TextField,
+  Paper,
   InputAdornment,
+  Alert,
+  useTheme,
+  alpha,
   Divider,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  FormGroup,
-  FormControlLabel,
-  Checkbox,
-  Slider
+  Rating
 } from "@mui/material";
-import { alpha } from '@mui/material/styles';
 import { 
+  Search as SearchIcon, 
   LocationOn as LocationIcon,
-  AccessTime as TimeIcon,
-  AttachMoney as MoneyIcon,
-  Verified as VerifiedIcon,
   MedicalServices as MedicalIcon,
-  Search as SearchIcon,
-  FilterAlt as FilterIcon,
-  RestartAlt as ResetIcon,
-  ExpandMore as ExpandMoreIcon
+  School as SchoolIcon,
+  MonetizationOn as PriceIcon,
+  Workspaces as ExperienceIcon,
+  LocalHospital as HospitalIcon,
+  StarRate as StarIcon,
+  Sort as SortIcon,
+  FilterList as FilterIcon,
+  VerifiedUser as VerifiedIcon
 } from "@mui/icons-material";
-import { doctorsApi } from "../services/apiService";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+import BookAppointmentModal from "../components/BookAppointmentModal";
+import axios from 'axios';
+
+// Use direct axios calls to debug
+const API_BASE_URL = 'http://localhost:5000';
 
 const SpecialistDoctorsWithFilter = ({ showAlert }) => {
-  const { specialty } = useParams();
-  const navigate = useNavigate();
   const theme = useTheme();
+  const navigate = useNavigate();
+  const { specialty } = useParams();
+  const location = useLocation();
   
-  // States for doctors data
-  const [doctors, setDoctors] = useState([]);
-  const [filteredDoctors, setFilteredDoctors] = useState([]);
+  // Extract search query from URL if present
+  const queryParams = new URLSearchParams(location.search);
+  const searchQuery = queryParams.get('search');
+  
+  // State
   const [loading, setLoading] = useState(true);
+  const [doctors, setDoctors] = useState([]);
   const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState(searchQuery || '');
+  const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [bookingModalOpen, setBookingModalOpen] = useState(false);
   
-  // States for filtering and search
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
+  // Format specialty name for display
+  const getFormattedTitle = () => {
+    // If we have a specialization from search or URL
+    const specialtyName = specialty 
+      ? specialty.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') 
+      : searchQuery ? searchQuery.charAt(0).toUpperCase() + searchQuery.slice(1) : null;
+    
+    if (specialtyName) {
+      // Check if specialtyName already ends with "ist" (like Dentist)
+      if (specialtyName.toLowerCase().endsWith('ist')) {
+        return `${specialtyName}s in Islamabad/Rawalpindi`;
+      } else {
+        // For other specialties
+        return `${specialtyName} Specialists in Islamabad/Rawalpindi`;
+      }
+    }
+    
+    return "Medical Specialists in Islamabad/Rawalpindi";
+  };
+
+  // Get formatted title
+  const pageTitle = getFormattedTitle();
   
-  // Filter states
-  const [filters, setFilters] = useState({
-    specialties: [],
-    availability: [],
-    gender: '',
-    rating: 0,
-    priceRange: [0, 5000]
-  });
-
-  // Format specialty for display
-  const formattedSpecialty = specialty
-    ? specialty.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
-    : '';
-
-  // Filter options
-  const specialtyOptions = [
-    "General Physician", "Cardiologist", "Dermatologist", "Gynecologist", 
-    "Neurologist", "Ophthalmologist", "Orthopedic Surgeon", "Pediatrician", 
-    "Psychiatrist", "Gastroenterologist"
-  ];
-  
-  const availabilityOptions = [
-    "Today", "Tomorrow", "This Week", "Weekend", "Next Week"
-  ];
-
-  // Fetch doctors based on qualification
+  // DIRECT API CALL - bypassing the service for debugging
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        console.log(`Fetching doctors for specialty: ${formattedSpecialty}`);
-        const response = await doctorsApi.getBySpecialization(formattedSpecialty);
+        // Build the query string - direct approach
+        const query = searchQuery || (specialty ? specialty.replace(/-/g, ' ') : '');
+        let apiUrl = `${API_BASE_URL}/api/fetchdoctorsdata`;
         
-        console.log('Doctor API response:', response);
-        
-        let doctorsData = [];
-        
-        if (response && response.success && response.data) {
-          doctorsData = response.data;
-        } else if (response && Array.isArray(response)) {
-          // Handle direct array response
-          doctorsData = response;
-        } else if (response && response.data) {
-          // Handle direct data field
-          doctorsData = response.data;
-        } else {
-          // If API structure doesn't match expected format, show warning
-          console.warn("Unexpected API response format:", response);
-          doctorsData = [];
-          showAlert && showAlert("Received unexpected data format from server", "warning");
+        // Only add the query parameter if we have a search term
+        if (query && query.trim() !== '') {
+          apiUrl += `?specialization=${encodeURIComponent(query.trim())}`;
         }
         
-        // Add some mock data for filtering if needed
-        const enhancedData = doctorsData.map(doc => ({
-          ...doc,
-          gender: doc.gender || (Math.random() > 0.5 ? 'Male' : 'Female'),
-          rating: doc.rating || (Math.random() * 2 + 3).toFixed(1), // Random rating between 3-5
-          availability: doc.availability || (Math.random() > 0.5 ? ['Today', 'Tomorrow'] : ['This Week'])
-        }));
+        console.log('Making API request to:', apiUrl);
         
-        setDoctors(enhancedData);
-        setFilteredDoctors(enhancedData);
-      } catch (error) {
-        console.error("Error fetching doctors:", error);
-        setError(error.message || "Failed to load doctors. Please try again later.");
-        showAlert && showAlert("Error loading specialists: " + (error.message || "Unknown error"), "error");
+        // Make the direct API call
+        const response = await axios.get(apiUrl);
+        
+        console.log('API Response:', response.data);
+        
+        // Check for success and data
+        if (response.data.success && response.data.data) {
+          setDoctors(response.data.data);
+        } else {
+          setDoctors([]);
+          setError("No doctors found matching your criteria");
+        }
+      } catch (err) {
+        console.error("Error fetching doctors:", err);
+        setError("Failed to load doctors. Please try again.");
         setDoctors([]);
-        setFilteredDoctors([]);
       } finally {
         setLoading(false);
       }
     };
-
-    if (specialty) {
-      fetchDoctors();
-    }
-  }, [specialty, formattedSpecialty, showAlert]);
-
+    
+    fetchDoctors();
+  }, [specialty, searchQuery]);
+  
   // Handle search
-  useEffect(() => {
-    if (!doctors.length) return;
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      // Update URL with search query
+      navigate(`/specialists?search=${encodeURIComponent(searchTerm.trim())}`);
+    }
+  };
+  
+  // Open booking modal with selected doctor
+  const handleBookAppointment = (doctor) => {
+    setSelectedDoctor(doctor);
+    setBookingModalOpen(true);
+  };
+  
+  // Close booking modal
+  const handleCloseBookingModal = () => {
+    setBookingModalOpen(false);
+  };
+  
+  // Format experience text
+  const getExperienceText = (experience) => {
+    if (!experience) return null;
     
-    applyFiltersAndSearch();
-  }, [searchTerm, doctors]);
-
-  // Handle checkbox changes
-  const handleCheckboxChange = (category, value) => {
-    setFilters(prev => {
-      const newArray = prev[category].includes(value)
-        ? prev[category].filter(item => item !== value)
-        : [...prev[category], value];
-      
-      return { ...prev, [category]: newArray };
-    });
-  };
-
-  // Handle gender selection
-  const handleGenderChange = (value) => {
-    setFilters(prev => ({ 
-      ...prev, 
-      gender: prev.gender === value ? '' : value 
-    }));
-  };
-
-  // Handle rating change
-  const handleRatingChange = (event, value) => {
-    setFilters(prev => ({ ...prev, rating: value }));
-  };
-
-  // Handle price range change
-  const handlePriceChange = (event, value) => {
-    setFilters(prev => ({ ...prev, priceRange: value }));
-  };
-
-  // Apply filters and search
-  const applyFiltersAndSearch = () => {
-    let filtered = [...doctors];
-    
-    // Apply search term
-    if (searchTerm) {
-      filtered = filtered.filter(
-        doctor => 
-          doctor.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-          doctor.specialization?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+    // Handle cases where experience is a year number (e.g. 2017)
+    if (experience > 1900) {
+      const yearsExperience = new Date().getFullYear() - experience;
+      return `${yearsExperience}+ Years Experience`;
     }
     
-    // Filter by specialties
-    if (filters.specialties.length > 0) {
-      filtered = filtered.filter(doctor => 
-        filters.specialties.includes(doctor.specialization)
-      );
+    // Normal experience number
+    if (experience > 0) {
+      return `${experience} Years Experience`;
     }
     
-    // Filter by availability
-    if (filters.availability.length > 0) {
-      filtered = filtered.filter(doctor => 
-        doctor.availability?.some(avail => 
-          filters.availability.includes(avail)
-        )
-      );
-    }
-    
-    // Filter by gender
-    if (filters.gender) {
-      filtered = filtered.filter(doctor => 
-        doctor.gender === filters.gender
-      );
-    }
-    
-    // Filter by rating
-    if (filters.rating > 0) {
-      filtered = filtered.filter(doctor => 
-        parseFloat(doctor.rating) >= filters.rating
-      );
-    }
-    
-    // Filter by price range
-    filtered = filtered.filter(doctor => 
-      !doctor.fee || (doctor.fee >= filters.priceRange[0] && doctor.fee <= filters.priceRange[1])
-    );
-    
-    setFilteredDoctors(filtered);
+    return null;
   };
-
-  // Apply filters
-  const applyFilters = () => {
-    applyFiltersAndSearch();
-    setShowFilters(false); // Hide mobile filters after applying
-  };
-
-  // Reset filters
-  const resetFilters = () => {
-    const resetValues = {
-      specialties: [],
-      availability: [],
-      gender: '',
-      rating: 0,
-      priceRange: [0, 5000]
-    };
-    
-    setFilters(resetValues);
-    setSearchTerm("");
-    setFilteredDoctors(doctors);
-  };
-
-  if (loading) {
-    return (
-      <Container maxWidth="md" sx={{ textAlign: "center", py: 8 }}>
-        <CircularProgress size={60} />
-        <Typography variant="h6" sx={{ mt: 3 }}>
-          Loading {formattedSpecialty} specialists...
-        </Typography>
-      </Container>
-    );
-  }
-
-  if (error) {
-    return (
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        <Alert severity="error" sx={{ mb: 4 }}>
-          {error}
-        </Alert>
-        <Button 
-          variant="contained" 
-          onClick={() => window.location.reload()}
-        >
-          Try Again
-        </Button>
-      </Container>
-    );
-  }
-
+  
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Grid container spacing={3}>
-        {/* Left Column - Filters (Larger screens) */}
-        <Grid item xs={12} md={3} sx={{ display: { xs: 'none', md: 'block' } }}>
-          <Paper
-            elevation={0}
+      {/* Header with Search */}
+      <Paper
+        elevation={0}
+        sx={{
+          p: { xs: 2, md: 4 },
+          mb: 4,
+          borderRadius: 3,
+          background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.primary.light, 0.15)} 100%)`,
+          border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+      >
+        {/* Decorative elements */}
+        <Box 
+          sx={{ 
+            position: 'absolute', 
+            right: -20, 
+            top: -20, 
+            width: 120, 
+            height: 120, 
+            borderRadius: '50%', 
+            bgcolor: alpha(theme.palette.primary.main, 0.1),
+            zIndex: 0
+          }} 
+        />
+        <Box 
+          sx={{ 
+            position: 'absolute', 
+            left: 30, 
+            bottom: -30, 
+            width: 80, 
+            height: 80, 
+            borderRadius: '50%', 
+            bgcolor: alpha(theme.palette.secondary.main, 0.1),
+            zIndex: 0
+          }} 
+        />
+      
+        <Box sx={{ position: 'relative', zIndex: 1 }}>
+          <Typography 
+            variant="h4" 
+            component="h1" 
+            gutterBottom
+            fontWeight="bold"
             sx={{ 
-              borderRadius: 3, 
-              border: `1px solid ${theme.palette.divider}`,
-              overflow: 'hidden',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-              height: '100%',
-              position: 'sticky',
-              top: 24
+              color: "text.primary",
+              fontSize: { xs: '1.75rem', md: '2.25rem' }
             }}
           >
-            {/* Header */}
-            <Box 
-              sx={{ 
-                p: 2, 
-                display: 'flex', 
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                bgcolor: alpha(theme.palette.primary.main, 0.03)
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <FilterIcon sx={{ color: theme.palette.primary.main, mr: 1 }} />
-                <Typography variant="h6" fontWeight="bold">
-                  Filter Doctors
-                </Typography>
-              </Box>
-              
-              <Button
-                variant="text"
-                size="small"
-                startIcon={<ResetIcon />}
-                onClick={resetFilters}
-              >
-                Reset
-              </Button>
-            </Box>
-            
-            <Divider />
-            
-            {/* Filter Content */}
-            <Box sx={{ p: 2, maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }}>
-              {/* Specialties */}
-              <Accordion defaultExpanded>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Typography fontWeight="medium">Specialties</Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <FormGroup>
-                    {specialtyOptions.map(specialty => (
-                      <FormControlLabel
-                        key={specialty}
-                        control={
-                          <Checkbox 
-                            checked={filters.specialties.includes(specialty)}
-                            onChange={() => handleCheckboxChange('specialties', specialty)}
-                            size="small"
-                            sx={{
-                              color: theme.palette.primary.light,
-                              '&.Mui-checked': {
-                                color: theme.palette.primary.main,
-                              },
-                            }}
-                          />
-                        }
-                        label={
-                          <Typography variant="body2">
-                            {specialty}
-                          </Typography>
-                        }
-                      />
-                    ))}
-                  </FormGroup>
-                </AccordionDetails>
-              </Accordion>
-              
-              {/* Availability */}
-              <Accordion>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Typography fontWeight="medium">Availability</Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <FormGroup>
-                    {availabilityOptions.map(option => (
-                      <FormControlLabel
-                        key={option}
-                        control={
-                          <Checkbox 
-                            checked={filters.availability.includes(option)}
-                            onChange={() => handleCheckboxChange('availability', option)}
-                            size="small"
-                            sx={{
-                              color: theme.palette.primary.light,
-                              '&.Mui-checked': {
-                                color: theme.palette.primary.main,
-                              },
-                            }}
-                          />
-                        }
-                        label={
-                          <Typography variant="body2">
-                            {option}
-                          </Typography>
-                        }
-                      />
-                    ))}
-                  </FormGroup>
-                </AccordionDetails>
-              </Accordion>
-              
-              {/* Gender */}
-              <Accordion>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Typography fontWeight="medium">Doctor Gender</Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <FormGroup>
-                    <FormControlLabel
-                      control={
-                        <Checkbox 
-                          checked={filters.gender === 'Male'}
-                          onChange={() => handleGenderChange('Male')}
-                          size="small"
-                          sx={{
-                            color: theme.palette.primary.light,
-                            '&.Mui-checked': {
-                              color: theme.palette.primary.main,
-                            },
-                          }}
-                        />
-                      }
-                      label={<Typography variant="body2">Male</Typography>}
-                    />
-                    <FormControlLabel
-                      control={
-                        <Checkbox 
-                          checked={filters.gender === 'Female'}
-                          onChange={() => handleGenderChange('Female')}
-                          size="small"
-                          sx={{
-                            color: theme.palette.primary.light,
-                            '&.Mui-checked': {
-                              color: theme.palette.primary.main,
-                            },
-                          }}
-                        />
-                      }
-                      label={<Typography variant="body2">Female</Typography>}
-                    />
-                  </FormGroup>
-                </AccordionDetails>
-              </Accordion>
-              
-              {/* Rating */}
-              <Accordion>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Typography fontWeight="medium">Minimum Rating</Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <Box sx={{ px: 1, pt: 1, pb: 2 }}>
-                    <Slider
-                      value={filters.rating}
-                      onChange={handleRatingChange}
-                      min={0}
-                      max={5}
-                      step={1}
-                      marks={[
-                        { value: 0, label: 'Any' },
-                        { value: 1, label: '1' },
-                        { value: 2, label: '2' },
-                        { value: 3, label: '3' },
-                        { value: 4, label: '4' },
-                        { value: 5, label: '5' },
-                      ]}
-                      valueLabelDisplay="auto"
-                      sx={{
-                        color: theme.palette.primary.main,
-                        '& .MuiSlider-thumb': {
-                          height: 20,
-                          width: 20,
-                        },
-                      }}
-                    />
-                    <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>
-                      {filters.rating === 0 ? 'Any Rating' : `${filters.rating}+ stars`}
-                    </Typography>
-                  </Box>
-                </AccordionDetails>
-              </Accordion>
-              
-              {/* Price Range */}
-              <Accordion>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Typography fontWeight="medium">Consultation Fee (Rs.)</Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <Box sx={{ px: 1, pt: 1, pb: 2 }}>
-                    <Slider
-                      value={filters.priceRange}
-                      onChange={handlePriceChange}
-                      min={0}
-                      max={5000}
-                      step={500}
-                      valueLabelDisplay="auto"
-                      marks={[
-                        { value: 0, label: '0' },
-                        { value: 2500, label: '2500' },
-                        { value: 5000, label: '5000+' },
-                      ]}
-                      sx={{
-                        color: theme.palette.primary.main,
-                        '& .MuiSlider-thumb': {
-                          height: 20,
-                          width: 20,
-                        },
-                      }}
-                    />
-                    <Typography variant="body2" sx={{ mt: 2, textAlign: 'center' }}>
-                      Rs. {filters.priceRange[0]} - Rs. {filters.priceRange[1]}
-                    </Typography>
-                  </Box>
-                </AccordionDetails>
-              </Accordion>
-            </Box>
-            
-            {/* Apply Button */}
-            <Box sx={{ p: 2 }}>
-              <Button
-                variant="contained"
+            {pageTitle}
+          </Typography>
+          
+          <Typography 
+            variant="subtitle1" 
+            color="text.secondary"
+            sx={{ mb: 3, maxWidth: '70%' }}
+          >
+            Find and book appointments with the best {searchQuery || specialty || 'medical'} specialists in your area
+          </Typography>
+          
+          {/* Search Form */}
+          <form onSubmit={handleSearch}>
+            <Box sx={{ 
+              display: "flex", 
+              flexDirection: { xs: "column", sm: "row" },
+              gap: 2,
+              maxWidth: '90%'
+            }}>
+              <TextField
                 fullWidth
-                onClick={applyFilters}
+                placeholder="Search by name, specialization, qualification..."
+                variant="outlined"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: 2,
+                    bgcolor: "background.paper",
+                    boxShadow: '0px 3px 10px rgba(0,0,0,0.05)'
+                  }
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+                startIcon={<SearchIcon />}
                 sx={{ 
-                  py: 1.5, 
-                  borderRadius: 2,
-                  textTransform: 'none',
-                  fontWeight: 'bold',
-                  boxShadow: '0 4px 12px rgba(25, 118, 210, 0.2)',
+                  borderRadius: 2, 
+                  px: 3,
+                  minWidth: { xs: '100%', sm: 'auto' }
                 }}
               >
-                Apply Filters
+                Search
               </Button>
             </Box>
-          </Paper>
-        </Grid>
-        
-        {/* Main Content */}
-        <Grid item xs={12} md={9}>
-          <Paper elevation={0} sx={{ p: 3, borderRadius: "16px", boxShadow: "0 4px 20px rgba(0,0,0,0.08)", mb: 3 }}>
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <Avatar 
-                  sx={{ 
-                    bgcolor: "primary.main", 
-                    mr: 2,
-                    width: 56,
-                    height: 56
-                  }}
-                >
-                  <MedicalIcon />
-                </Avatar>
-                <Box>
-                  <Typography variant="h4" sx={{ fontWeight: "bold", mb: 0.5 }}>
-                    {formattedSpecialty} in Islamabad
-                  </Typography>
-                  <Typography color="text.secondary">
-                    {filteredDoctors.length} specialists available
-                  </Typography>
-                </Box>
-              </Box>
-              
-              {/* Mobile Filter Button */}
-              <Button 
-                variant="outlined" 
-                startIcon={<FilterIcon />}
-                onClick={() => setShowFilters(!showFilters)}
-                sx={{ display: { xs: 'flex', md: 'none' } }}
-              >
-                {showFilters ? 'Hide Filters' : 'Show Filters'}
-              </Button>
+          </form>
+        </Box>
+      </Paper>
+      
+      {/* Results Section */}
+      {loading ? (
+        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", py: 10 }}>
+          <CircularProgress size={48} sx={{ mb: 3, color: theme.palette.primary.main }} />
+          <Typography variant="h6" color="text.secondary">
+            Finding the best specialists for you...
+          </Typography>
+        </Box>
+      ) : error ? (
+        <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
+          {error}
+        </Alert>
+      ) : doctors.length === 0 ? (
+        <Paper
+          elevation={0}
+          sx={{ 
+            p: 4, 
+            textAlign: 'center', 
+            borderRadius: 3,
+            border: `1px solid ${theme.palette.divider}`,
+            bgcolor: alpha(theme.palette.background.paper, 0.7)
+          }}
+        >
+          <HospitalIcon sx={{ fontSize: 60, color: alpha(theme.palette.text.secondary, 0.3), mb: 2 }} />
+          <Typography variant="h5" gutterBottom fontWeight="medium">
+            No specialists found
+          </Typography>
+          <Typography color="text.secondary" paragraph>
+            We couldn't find any specialists matching your search criteria.
+          </Typography>
+          <Button 
+            variant="outlined" 
+            color="primary" 
+            onClick={() => navigate('/specialists')}
+            sx={{ mt: 2 }}
+          >
+            View All Specialists
+          </Button>
+        </Paper>
+      ) : (
+        <>
+          {/* Results Header */}
+          <Box 
+            sx={{ 
+              display: "flex", 
+              justifyContent: "space-between", 
+              alignItems: "center", 
+              mb: 3, 
+              px: 2,
+              flexWrap: 'wrap',
+              gap: 2
+            }}
+          >
+            <Box>
+              <Typography variant="h6" fontWeight="medium">
+                {doctors.length} {doctors.length === 1 ? "specialist" : "specialists"} found
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Available for consultation in Islamabad/Rawalpindi
+              </Typography>
             </Box>
             
-            {/* Search Bar */}
-            <TextField
-              fullWidth
-              placeholder="Search by doctor name or specialty..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon color="action" />
-                  </InputAdornment>
-                ),
-                sx: { 
+            {/* Sorting options - for future enhancement */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Chip 
+                icon={<FilterIcon fontSize="small" />} 
+                label="Filters"
+                variant="outlined"
+                onClick={() => {}}
+                sx={{ 
                   borderRadius: 2,
-                  bgcolor: 'background.paper',
-                  mb: 3
-                }
-              }}
-            />
-            
-            {/* Mobile Filters (collapsible) */}
-            {showFilters && (
-              <Box sx={{ mb: 3, display: { xs: 'block', md: 'none' } }}>
-                <Paper
+                  '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.05) }
+                }}
+              />
+              <Chip 
+                icon={<SortIcon fontSize="small" />} 
+                label="Sort by: Relevance"
+                variant="outlined"
+                onClick={() => {}}
+                sx={{ 
+                  borderRadius: 2,
+                  '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.05) }
+                }}
+              />
+            </Box>
+          </Box>
+          
+          {/* Doctors List */}
+          <Grid container spacing={3}>
+            {doctors.map((doctor) => (
+              <Grid item xs={12} key={doctor._id}>
+                <Card 
                   elevation={0}
                   sx={{ 
-                    borderRadius: 3, 
+                    borderRadius: 3,
                     border: `1px solid ${theme.palette.divider}`,
-                    overflow: 'hidden',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
+                    '&:hover': {
+                      boxShadow: `0 8px 24px ${alpha(theme.palette.primary.main, 0.12)}`,
+                      borderColor: alpha(theme.palette.primary.main, 0.3),
+                      transform: 'translateY(-2px)'
+                    },
+                    transition: 'all 0.3s ease',
                   }}
                 >
-                  {/* Header */}
-                  <Box 
-                    sx={{ 
-                      p: 2, 
-                      display: 'flex', 
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      bgcolor: alpha(theme.palette.primary.main, 0.03)
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <FilterIcon sx={{ color: theme.palette.primary.main, mr: 1 }} />
-                      <Typography variant="h6" fontWeight="bold">
-                        Filter Doctors
-                      </Typography>
-                    </Box>
-                    
-                    <Button
-                      variant="text"
-                      size="small"
-                      startIcon={<ResetIcon />}
-                      onClick={resetFilters}
-                    >
-                      Reset
-                    </Button>
-                  </Box>
-                  
-                  <Divider />
-                  
-                  {/* Filter Content */}
-                  <Box sx={{ p: 2 }}>
-                    {/* Specialties */}
-                    <Accordion defaultExpanded>
-                      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                        <Typography fontWeight="medium">Specialties</Typography>
-                      </AccordionSummary>
-                      <AccordionDetails>
-                        <FormGroup>
-                          {specialtyOptions.map(specialty => (
-                            <FormControlLabel
-                              key={specialty}
-                              control={
-                                <Checkbox 
-                                  checked={filters.specialties.includes(specialty)}
-                                  onChange={() => handleCheckboxChange('specialties', specialty)}
-                                  size="small"
-                                  sx={{
-                                    color: theme.palette.primary.light,
-                                    '&.Mui-checked': {
-                                      color: theme.palette.primary.main,
-                                    },
-                                  }}
-                                />
-                              }
-                              label={
-                                <Typography variant="body2">
-                                  {specialty}
-                                </Typography>
-                              }
-                            />
-                          ))}
-                        </FormGroup>
-                      </AccordionDetails>
-                    </Accordion>
-                    
-                    {/* Availability */}
-                    <Accordion>
-                      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                        <Typography fontWeight="medium">Availability</Typography>
-                      </AccordionSummary>
-                      <AccordionDetails>
-                        <FormGroup>
-                          {availabilityOptions.map(option => (
-                            <FormControlLabel
-                              key={option}
-                              control={
-                                <Checkbox 
-                                  checked={filters.availability.includes(option)}
-                                  onChange={() => handleCheckboxChange('availability', option)}
-                                  size="small"
-                                  sx={{
-                                    color: theme.palette.primary.light,
-                                    '&.Mui-checked': {
-                                      color: theme.palette.primary.main,
-                                    },
-                                  }}
-                                />
-                              }
-                              label={
-                                <Typography variant="body2">
-                                  {option}
-                                </Typography>
-                              }
-                            />
-                          ))}
-                        </FormGroup>
-                      </AccordionDetails>
-                    </Accordion>
-                    
-                    {/* Gender */}
-                    <Accordion>
-                      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                        <Typography fontWeight="medium">Doctor Gender</Typography>
-                      </AccordionSummary>
-                      <AccordionDetails>
-                        <FormGroup>
-                          <FormControlLabel
-                            control={
-                              <Checkbox 
-                                checked={filters.gender === 'Male'}
-                                onChange={() => handleGenderChange('Male')}
-                                size="small"
-                                sx={{
-                                  color: theme.palette.primary.light,
-                                  '&.Mui-checked': {
-                                    color: theme.palette.primary.main,
-                                  },
-                                }}
-                              />
-                            }
-                            label={<Typography variant="body2">Male</Typography>}
-                          />
-                          <FormControlLabel
-                            control={
-                              <Checkbox 
-                                checked={filters.gender === 'Female'}
-                                onChange={() => handleGenderChange('Female')}
-                                size="small"
-                                sx={{
-                                  color: theme.palette.primary.light,
-                                  '&.Mui-checked': {
-                                    color: theme.palette.primary.main,
-                                  },
-                                }}
-                              />
-                            }
-                            label={<Typography variant="body2">Female</Typography>}
-                          />
-                        </FormGroup>
-                      </AccordionDetails>
-                    </Accordion>
-                    
-                    {/* Rating */}
-                    <Accordion>
-                      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                        <Typography fontWeight="medium">Minimum Rating</Typography>
-                      </AccordionSummary>
-                      <AccordionDetails>
-                        <Box sx={{ px: 1, pt: 1, pb: 2 }}>
-                          <Slider
-                            value={filters.rating}
-                            onChange={handleRatingChange}
-                            min={0}
-                            max={5}
-                            step={1}
-                            marks={[
-                              { value: 0, label: 'Any' },
-                              { value: 1, label: '1' },
-                              { value: 2, label: '2' },
-                              { value: 3, label: '3' },
-                              { value: 4, label: '4' },
-                              { value: 5, label: '5' },
-                            ]}
-                            valueLabelDisplay="auto"
-                            sx={{
-                              color: theme.palette.primary.main,
-                              '& .MuiSlider-thumb': {
-                                height: 20,
-                                width: 20,
-                              },
+                  <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+                    <Grid container spacing={3}>
+                      {/* Doctor Avatar/Image */}
+                      <Grid item xs={12} sm={2} sx={{ display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
+                        <Box sx={{ position: 'relative' }}>
+                          <Avatar
+                            src={doctor.profile}
+                            alt={doctor.name}
+                            sx={{ 
+                              width: 100, 
+                              height: 100,
+                              border: `2px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                              boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+                            }}
+                          >
+                            {doctor.name ? doctor.name.charAt(0) : "D"}
+                          </Avatar>
+                          
+                          {/* Verified badge for every doctor */}
+                          <Chip
+                            icon={<VerifiedIcon fontSize="small" />}
+                            label="Verified"
+                            size="small"
+                            color="primary"
+                            sx={{ 
+                              position: 'absolute',
+                              bottom: -10,
+                              left: '50%',
+                              transform: 'translateX(-50%)',
+                              borderRadius: '50px',
+                              fontSize: '0.7rem',
+                              height: 24
                             }}
                           />
-                          <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>
-                            {filters.rating === 0 ? 'Any Rating' : `${filters.rating}+ stars`}
-                          </Typography>
                         </Box>
-                      </AccordionDetails>
-                    </Accordion>
-                    
-                    {/* Price Range */}
-                    <Accordion>
-                      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                        <Typography fontWeight="medium">Consultation Fee (Rs.)</Typography>
-                      </AccordionSummary>
-                      <AccordionDetails>
-                        <Box sx={{ px: 1, pt: 1, pb: 2 }}>
-                          <Slider
-                            value={filters.priceRange}
-                            onChange={handlePriceChange}
-                            min={0}
-                            max={5000}
-                            step={500}
-                            valueLabelDisplay="auto"
-                            marks={[
-                              { value: 0, label: '0' },
-                              { value: 2500, label: '2500' },
-                              { value: 5000, label: '5000+' },
-                            ]}
-                            sx={{
-                              color: theme.palette.primary.main,
-                              '& .MuiSlider-thumb': {
-                                height: 20,
-                                width: 20,
-                              },
-                            }}
-                          />
-                          <Typography variant="body2" sx={{ mt: 2, textAlign: 'center' }}>
-                            Rs. {filters.priceRange[0]} - Rs. {filters.priceRange[1]}
+                      </Grid>
+                      
+                      {/* Doctor Info */}
+                      <Grid item xs={12} sm={7}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 1 }}>
+                          <Typography variant="h6" component="h2" fontWeight="bold">
+                            {doctor.name}
                           </Typography>
-                        </Box>
-                      </AccordionDetails>
-                    </Accordion>
-                  </Box>
-                  
-                  {/* Apply Button */}
-                  <Box sx={{ p: 2 }}>
-                    <Button
-                      variant="contained"
-                      fullWidth
-                      onClick={applyFilters}
-                      sx={{ 
-                        py: 1.5, 
-                        borderRadius: 2,
-                        textTransform: 'none',
-                        fontWeight: 'bold',
-                        boxShadow: '0 4px 12px rgba(25, 118, 210, 0.2)',
-                      }}
-                    >
-                      Apply Filters
-                    </Button>
-                  </Box>
-                </Paper>
-              </Box>
-            )}
-            
-            {/* Doctor List */}
-            {filteredDoctors.length > 0 ? (
-              <Box>
-                {filteredDoctors.map((doctor) => (
-                  <Card 
-                    elevation={0}
-                    key={doctor._id || `doc-${Math.random().toString(36).substr(2, 9)}`}
-                    sx={{ 
-                      mb: 3, 
-                      borderRadius: 3,
-                      border: "1px solid rgba(0, 0, 0, 0.08)",
-                      overflow: "hidden",
-                      transition: "all 0.3s ease-in-out",
-                      "&:hover": {
-                        transform: "translateY(-5px)",
-                        boxShadow: "0 10px 20px rgba(0, 0, 0, 0.1)",
-                      }
-                    }}
-                  >
-                    <CardContent sx={{ p: 3 }}>
-                      <Grid container spacing={3}>
-                        {/* Doctor Image/Avatar */}
-                        <Grid item xs={12} sm={2} sx={{ display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
-                          {doctor.profile ? (
-                            <Box
-                              component="img"
-                              src={doctor.profile}
-                              alt={doctor.name}
-                              sx={{
-                                width: 120,
-                                height: 120,
-                                borderRadius: "50%",
-                                objectFit: "cover",
-                                border: "4px solid #f0f4f8"
-                              }}
+                          
+                          {/* Simulated rating */}
+                          <Box sx={{ display: 'flex', alignItems: 'center', ml: 'auto' }}>
+                            <Rating 
+                              value={4 + Math.random()} 
+                              precision={0.5} 
+                              readOnly 
+                              size="small"
+                              sx={{ color: theme.palette.warning.main }}
                             />
-                          ) : (
-                            <Avatar 
-                              sx={{ 
-                                width: 120, 
-                                height: 120,
-                                bgcolor: "primary.light",
-                                fontSize: "2.5rem",
-                                fontWeight: "bold"
-                              }}
-                            >
-                              {doctor.name?.charAt(0) || "D"}
-                            </Avatar>
-                          )}
-                        </Grid>
-                        
-                        {/* Doctor Info */}
-                        <Grid item xs={12} sm={7}>
-                          <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 1, mb: 1 }}>
-                            <Typography variant="h5" fontWeight="bold">
-                              {doctor.name || "Doctor Name"}
+                            <Typography variant="body2" sx={{ ml: 0.5, color: 'text.secondary' }}>
+                              {(4 + Math.random()).toFixed(1)}
                             </Typography>
+                          </Box>
+                        </Box>
+                        
+                        <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                          <MedicalIcon 
+                            fontSize="small" 
+                            sx={{ mr: 1, color: theme.palette.primary.main }} 
+                          />
+                          <Typography variant="body1" fontWeight={500}>
+                            {doctor.specialization || "Specialist"}
+                          </Typography>
+                        </Box>
+                        
+                        {doctor.qualification && (
+                          <Box sx={{ display: "flex", alignItems: "flex-start", mb: 1 }}>
+                            <SchoolIcon 
+                              fontSize="small" 
+                              sx={{ mr: 1, mt: 0.3, color: theme.palette.secondary.main }} 
+                            />
+                            <Typography variant="body2" color="text.secondary">
+                              {Array.isArray(doctor.qualification) 
+                                ? doctor.qualification.join(', ') 
+                                : doctor.qualification}
+                            </Typography>
+                          </Box>
+                        )}
+                        
+                        {/* Experience - only show if available */}
+                        {getExperienceText(doctor.experience) && (
+                          <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                            <ExperienceIcon 
+                              fontSize="small" 
+                              sx={{ mr: 1, color: theme.palette.success.main }} 
+                            />
+                            <Typography variant="body2" fontWeight="medium" color="text.secondary">
+                              {getExperienceText(doctor.experience)}
+                            </Typography>
+                          </Box>
+                        )}
+                        
+                        {/* Location */}
+                        <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                          <LocationIcon 
+                            fontSize="small" 
+                            sx={{ mr: 1, color: theme.palette.error.light }} 
+                          />
+                          <Typography variant="body2" color="text.secondary">
+                            {Math.random() > 0.5 ? 'Islamabad' : 'Rawalpindi'}, Pakistan
+                          </Typography>
+                        </Box>
+                        
+                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 2 }}>
+                          {doctor.specialization && (
                             <Chip 
                               size="small" 
-                              icon={<VerifiedIcon />} 
-                              label="Verified" 
+                              label={doctor.specialization} 
                               sx={{ 
-                                bgcolor: "#e3f2fd", 
-                                color: "primary.main",
-                                fontWeight: "medium"
+                                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                color: theme.palette.primary.main,
+                                fontWeight: 500,
+                                borderRadius: '50px'
                               }} 
                             />
-                            
-                            {doctor.gender && (
-                              <Chip 
-                                size="small" 
-                                label={doctor.gender} 
-                                sx={{ 
-                                  bgcolor: doctor.gender === 'Male' ? "#e8f5e9" : "#fff1e6", 
-                                  color: doctor.gender === 'Male' ? "#2e7d32" : "#ed6c02",
-                                  fontWeight: "medium"
-                                }} 
-                              />
-                            )}
-                          </Box>
-                          
-                          <Typography color="text.secondary" sx={{ mb: 1 }}>
-                            {Array.isArray(doctor.qualification) 
-                              ? doctor.qualification.join(", ") 
-                              : (doctor.qualification || doctor.specialization || formattedSpecialty)}
-                          </Typography>
-                          
-                          <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                            <Rating 
-                              value={parseFloat(doctor.rating) || 4.5} // Fallback to 4.5
-                              readOnly
-                              precision={0.5}
-                              size="small"
-                            />
-                            <Typography variant="body2" sx={{ ml: 1, color: "text.secondary" }}>
-                              {doctor.rating || "4.5"} ({Math.floor(Math.random() * 150) + 50} reviews)
-                            </Typography>
-                          </Box>
-                          
-                          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3, mt: 2 }}>
-                            <Box sx={{ display: "flex", alignItems: "center" }}>
-                              <TimeIcon sx={{ mr: 1, color: "text.secondary", fontSize: 20 }} />
-                              <Typography variant="body2">
-                                Experience: {doctor.experience || "N/A"} years
-                              </Typography>
-                            </Box>
-                            
-                            <Box sx={{ display: "flex", alignItems: "center" }}>
-                              <LocationIcon sx={{ mr: 1, color: "text.secondary", fontSize: 20 }} />
-                              <Typography variant="body2">
-                                Islamabad Medical Complex
-                              </Typography>
-                            </Box>
-                            
-                            <Box sx={{ display: "flex", alignItems: "center" }}>
-                              <MoneyIcon sx={{ mr: 1, color: "primary.main", fontSize: 20 }} />
-                              <Typography variant="body2" fontWeight={600} color="primary.main">
-                                Fee: Rs. {doctor.fee || "N/A"}
-                              </Typography>
-                            </Box>
-                          </Box>
-                          
-                          {doctor.availability && (
-                            <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
-                              {doctor.availability.map((slot, idx) => (
-                                <Chip 
-                                  key={idx}
-                                  size="small"
-                                  label={slot}
-                                  sx={{ 
-                                    bgcolor: slot === 'Today' ? alpha(theme.palette.success.main, 0.1) : alpha(theme.palette.primary.main, 0.1),
-                                    color: slot === 'Today' ? theme.palette.success.main : theme.palette.primary.main,
-                                  }}
-                                />
-                              ))}
-                            </Box>
                           )}
-                        </Grid>
-                        
-                        {/* Action Buttons */}
-                        <Grid item xs={12} sm={3} sx={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: 2 }}>
-                          <Button
-                            variant="contained"
-                            fullWidth
-                            color="primary"
-                            onClick={() => navigate(`/book-appointment`)}
-                            sx={{ 
-                              py: 1.5,
-                              borderRadius: 2,
-                              boxShadow: "0 4px 10px rgba(25, 118, 210, 0.2)"
-                            }}
-                          >
-                            Book Appointment
-                          </Button>
                           
-                          <Button
-                            variant="outlined"
-                            fullWidth
-                            onClick={() => navigate(`/doctor/${doctor._id}`)}
-                            sx={{ py: 1.5, borderRadius: 2 }}
-                            disabled={!doctor._id}
-                          >
-                            View Profile
-                          </Button>
-                        </Grid>
+                          {/* Additional specialization chips could be added here */}
+                        </Box>
                       </Grid>
-                    </CardContent>
-                  </Card>
-                ))}
-              </Box>
-            ) : (
-              <Paper 
-                variant="outlined" 
-                sx={{ 
-                  p: 4, 
-                  textAlign: "center",
-                  borderRadius: 2 
-                }}
-              >
-                <Typography variant="h6" gutterBottom>
-                  No specialists match your filters
-                </Typography>
-                <Typography variant="body2" color="text.secondary" paragraph>
-                  Try adjusting your filters or search criteria for better results.
-                </Typography>
-                <Button 
-                  variant="contained" 
-                  onClick={resetFilters}
-                  sx={{ mt: 2 }}
-                >
-                  Reset Filters
-                </Button>
-              </Paper>
-            )}
-          </Paper>
-        </Grid>
-      </Grid>
+                      
+                      {/* Action Buttons */}
+                      <Grid item xs={12} sm={3} sx={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: 2 }}>
+                        <Box sx={{ 
+                          display: "flex", 
+                          alignItems: "center", 
+                          justifyContent: "center", 
+                          mb: 2,
+                          p: 1.5,
+                          borderRadius: 2,
+                          bgcolor: alpha(theme.palette.success.main, 0.1),
+                        }}>
+                          <PriceIcon sx={{ color: theme.palette.success.main, mr: 1 }} />
+                          <Typography variant="h6" color="success.main" fontWeight="bold">
+                            Rs. {doctor.fee || "2,000"}
+                          </Typography>
+                        </Box>
+                        
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          fullWidth
+                          onClick={() => handleBookAppointment(doctor)}
+                          sx={{ 
+                            borderRadius: 2,
+                            py: 1.5,
+                            fontWeight: "bold",
+                            boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`
+                          }}
+                        >
+                          Book Appointment
+                        </Button>
+                        
+                        <Button
+                          variant="outlined"
+                          fullWidth
+                          onClick={() => navigate(`/doctor/${doctor._id}`)}
+                          sx={{ 
+                            borderRadius: 2,
+                            py: 1.5
+                          }}
+                        >
+                          View Profile
+                        </Button>
+                      </Grid>
+                    </Grid>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </>
+      )}
+      
+      {/* Booking Modal */}
+      {selectedDoctor && (
+        <BookAppointmentModal
+          open={bookingModalOpen}
+          handleClose={handleCloseBookingModal}
+          doctorData={selectedDoctor}
+        />
+      )}
     </Container>
   );
 };

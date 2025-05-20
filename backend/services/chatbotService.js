@@ -6,7 +6,7 @@ class ChatbotService {
   async generateResponse(symptoms) {
     try {
       // Check for API key in environment variables
-      const apiKey = process.env.GROQ_API_KEY || "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";
+      const apiKey = process.env.GROQ_API_KEY || "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";
       
       // Log API key status (first 10 chars only for security)
       console.log(`Using API key: ${apiKey.substring(0, 10)}...`);
